@@ -18,4 +18,8 @@ Typecheck, lint, production build, and the complete browser suite pass. Go race
 and integration tests remain green. Record audit results and remaining release
 limitations in the progress log; do not claim a live-provider release test.
 
-Status: planned before dependency changes.
+Status: implemented. Next.js and eslint-config-next are 16.4.5; lockfile reviewed.
+Typecheck, lint, production build, and both browser scenarios passed. npm audit
+no longer reports `next`; it still reports 15 affected dependency entries
+(6 moderate, 9 high) in development lint/glob tooling. This is not a clean audit
+and does not establish that production deployment is ready.
