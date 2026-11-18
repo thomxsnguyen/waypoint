@@ -135,3 +135,23 @@ Commit convention: Conventional Commits, one focused change per commit.
 - Next: comparison/approval UI and browser coverage. Origin inputs, visiting
   windows, transit semantics, and live-provider staging verification remain open;
   v2 is not complete.
+
+## v2 milestone 6 — comparison and approval UI
+
+- Plan committed first (`d8302a4`); UI and browser coverage committed separately.
+- Added Optimize day with WALK/DRIVE, local day bounds, and explicit fixed-start
+  checkboxes. Comparison shows named visits, estimated times/travel, savings,
+  conflicts, and limitations. Cancel preserves saved data; Apply sends approval ID.
+- Changed inputs discard the preview. Stale/failed apply clears the old approval
+  and prompts regeneration. Successful apply reloads the itinerary and map state.
+- Added a Routes double only to the build-tagged browser-test API. The new real
+  API/PostgreSQL browser scenario covers preview/cancel preservation, input-change
+  invalidation, another-tab edit rejection, explicit apply, and reload persistence.
+- Typecheck, lint, production build, Go race/integration suite, vet, and test-only
+  API compilation passed. Full browser suite: 3 passed; expanded optimization
+  scenario passed separately. Mobile form and comparison screenshots visually
+  reviewed, and overflow assertion passed.
+- README/API docs updated for the user-visible flow. No paid provider requests.
+- Remaining scope: origin inputs, visiting windows, transit semantics, controlled
+  benchmarks, and live-provider staging verification. Existing release caveats
+  remain open; full v2 is not complete.
