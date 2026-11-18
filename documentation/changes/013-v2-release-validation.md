@@ -12,3 +12,11 @@ browser demonstration (external doubles + real persistence) distinctly from live
 Google/Clerk staging verification. Missing credentials/deployment remain explicit
 external gates, not claims of completion. If compatible security patches are
 available, document and apply only those; avoid forced major upgrades/downgrades.
+
+Dependency audit: production tree reports zero vulnerabilities. Development lint
+packages report 15 affected entries (6 moderate, 9 high). The installed
+TypeScript ESLint 8.72.1 has a compatible 8.73.0 update that removes its old
+minimatch dependency range; update that existing transitive dependency and rerun
+checks. Do not force a framework downgrade or override picomatch across major
+versions. Registry latest picomatch is 4.0.7 and remains inside its reported
+vulnerable range, so document unresolved upstream tooling findings honestly.
