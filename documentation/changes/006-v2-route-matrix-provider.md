@@ -33,3 +33,16 @@ errors, missing credentials, validation, and cancellation. Exercise the adapter
 with Propose on a controlled matrix. No paid requests or live-key claims.
 
 Status: planned before implementation.
+
+## Implementation result
+
+Implemented in `backend/internal/routing/google.go`, with contract and proposal
+integration tests in `google_test.go`. Full Go race tests and vet passed;
+database-backed tests skip without TEST_DATABASE_URL. Targeted race tests and
+vet passed again after tightening the redirect assertion to require one request.
+Routing coverage measured 95.8% before that assertion-only refinement.
+
+No credentials, paid calls, HTTP endpoint, or persistence changes were introduced.
+The adapter is not connected to the running API yet. Production element quotas,
+provider configuration, mode selection UI, and live-provider verification remain
+required. The 20-stop limit allows 400 elements per request; no automatic retries.
