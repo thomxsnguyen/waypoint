@@ -120,7 +120,8 @@ Implementation follows [Clerk's Next.js integration](https://clerk.com/docs/next
 ## v2 backend preview (in progress)
 
 The API can preview a single day's optimized order using Google Routes estimates.
-The frontend comparison and approval/apply flow are not implemented yet. See the
+The API also supports explicit approval with stale-plan protection. The frontend
+comparison and approval controls are not implemented yet. See the
 [preview API contract](documentation/api.md) and [progress log](documentation/PROGRESS.md).
 
 For native API development, configure `GOOGLE_ROUTES_SERVER_API_KEY` with a
@@ -137,5 +138,7 @@ traffic-unaware DRIVE, up to 20 activities, with no automatic provider retries.
 Its in-memory rate limits assume one API instance and reset on restart; configure
 Google project spending/quota controls as well. Estimates exclude the first-stop
 approach and return leg, do not check opening hours, and are not guaranteed optimal.
-A preview never saves changes. Automated tests use a fake Routes provider; live
+A preview never saves changes. Applying its server-issued approval ID saves the
+reviewed order and start times atomically. IDs expire after ten minutes and on API
+restart; approvals support one API instance. Automated tests use a fake Routes provider; live
 provider verification is still required before release.

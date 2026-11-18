@@ -7,6 +7,7 @@ import (
 	"time"
 	"waypoint/internal/domain"
 	"waypoint/internal/routing"
+	"waypoint/internal/store"
 )
 
 type previewSchedule struct {
@@ -35,6 +36,10 @@ func scheduleDTO(e routing.Evaluation) previewSchedule {
 	return out
 }
 func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error {
+	snapshot, err := a.Store.OptimizationSnapshot(r.Context(), user(r), r.PathValue("trip"), r.PathValue("day"))
+	if err != nil {
+		return err
+	}
 	trip, err := a.Store.Trip(r.Context(), user(r), r.PathValue("trip"))
 	if err != nil {
 		return err
@@ -133,7 +138,30 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
+	current, err := a.Store.OptimizationSnapshot(r.Context(), user(r), trip.ID, day.ID)
+	if err != nil {
+		return err
+	}
+	if current != snapshot {
+		return domain.Conflict("The itinerary changed. Generate a new preview.")
+	}
+	var approvalID any
+	var expiresAt any
+	if len(proposal.Proposed.Conflicts) == 0 {
+		expires := time.Now().Add(10 * time.Minute)
+		visits := make([]store.ApprovedVisit, len(proposal.Proposed.Visits))
+		for i, v := range proposal.Proposed.Visits {
+			visits[i] = store.ApprovedVisit{ID: v.ID, Start: v.Start}
+		}
+		id, e := a.approvals.issue(approval{Owner: user(r), Trip: trip.ID, Day: day.ID, Snapshot: snapshot, Visits: visits, Expires: expires})
+		if e != nil {
+			return e
+		}
+		approvalID = id
+		expiresAt = expires.UTC().Format(time.RFC3339)
+	}
 	write(w, 200, map[string]any{
+		"approval_id": approvalID, "expires_at": expiresAt,
 		"day_id": day.ID, "timezone": trip.Timezone, "travel_mode": in.Mode,
 		"original": scheduleDTO(proposal.Original), "proposed": scheduleDTO(proposal.Proposed),
 		"changed": proposal.Changed, "savings_minutes": proposal.Savings, "explanation": proposal.Explanation,

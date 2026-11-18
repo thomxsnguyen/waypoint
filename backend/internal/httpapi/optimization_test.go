@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 	"waypoint/internal/domain"
@@ -15,10 +17,14 @@ import (
 type testRoutes struct {
 	calls int
 	err   error
+	hook  func()
 }
 
 func (p *testRoutes) Matrix(_ context.Context, ids []string, mode routing.TravelMode) ([][]int, error) {
 	p.calls++
+	if p.hook != nil {
+		p.hook()
+	}
 	if p.err != nil {
 		return nil, p.err
 	}
@@ -95,5 +101,96 @@ func TestOptimizationPreview(t *testing.T) {
 	after := decodeData[[]domain.Day](t, a.call("GET", base+"/days", "", 200))
 	if !reflect.DeepEqual(before, after) {
 		t.Fatal("preview changed persisted itinerary")
+	}
+}
+
+func TestOptimizationApproval(t *testing.T) {
+	pool := database(t)
+	provider := &testRoutes{}
+	api := &API{Store: &store.Store{Pool: pool}, Auth: testAuth{}, Places: testPlaces{}, Routes: provider}
+	handler := api.Router()
+	a := client{t, handler, "user-a"}
+	b := client{t, handler, "user-b"}
+	trip := decodeData[domain.Trip](t, a.call("POST", "/api/v1/trips", tripBody, 201))
+	base := "/api/v1/trips/" + trip.ID
+	days := decodeData[[]domain.Day](t, a.call("GET", base+"/days", "", 200))
+	for i := 0; i < 2; i++ {
+		p := decodeData[domain.SavedPlace](t, a.call("POST", base+"/places", fmt.Sprintf(`{"provider_place_id":"approval-%d"}`, i), 201))
+		a.call("POST", "/api/v1/days/"+days[0].ID+"/activities", fmt.Sprintf(`{"saved_place_id":%q,"duration_minutes":30,"notes":"keep me"}`, p.ID), 201)
+	}
+	dayPath := base + "/days/" + days[0].ID
+	body := `{"travel_mode":"WALK","start_minute":540,"end_minute":720}`
+	preview := func() string {
+		var out struct {
+			ApprovalID string `json:"approval_id"`
+		}
+		raw := a.call("POST", dayPath+"/optimization-preview", body, 200)
+		if err := json.Unmarshal(raw, &out); err != nil || out.ApprovalID == "" {
+			t.Fatalf("%s %v", raw, err)
+		}
+		return out.ApprovalID
+	}
+	applyBody := func(id string) string { return fmt.Sprintf(`{"approval_id":%q}`, id) }
+	// Infeasible previews cannot be approved.
+	impossible := a.call("POST", dayPath+"/optimization-preview", `{"travel_mode":"WALK","start_minute":540,"end_minute":550}`, 200)
+	var noApproval struct {
+		ID *string `json:"approval_id"`
+	}
+	if err := json.Unmarshal(impossible, &noApproval); err != nil || noApproval.ID != nil {
+		t.Fatalf("infeasible approval: %s", impossible)
+	}
+	// Mutations during provider computation invalidate preview issuance.
+	provider.hook = func() { a.call("PATCH", base, `{"description":"changed during routing"}`, 200) }
+	a.call("POST", dayPath+"/optimization-preview", body, 409)
+	provider.hook = nil
+	id := preview()
+	b.call("POST", dayPath+"/optimization-apply", applyBody(id), 404)
+	a.call("POST", base+"/days/"+days[1].ID+"/optimization-apply", applyBody(id), 409)
+	a.call("POST", dayPath+"/optimization-apply", applyBody("invented"), 409)
+	a.call("POST", dayPath+"/optimization-apply", `{"approval_id":"x","visits":[]}`, 400)
+	before := decodeData[[]domain.Day](t, a.call("GET", base+"/days", "", 200))
+	activityPath := "/api/v1/activities/" + before[0].Activities[0].ID
+	a.call("PATCH", activityPath, `{"notes":"edited"}`, 200)
+	a.call("PATCH", activityPath, `{"notes":"keep me"}`, 200)
+	a.call("POST", dayPath+"/optimization-apply", applyBody(id), 409)
+	id = preview()
+	api.approvals.mu.Lock()
+	expired := api.approvals.entries[id]
+	expired.Expires = time.Now().Add(-time.Second)
+	api.approvals.entries[id] = expired
+	api.approvals.mu.Unlock()
+	a.call("POST", dayPath+"/optimization-apply", applyBody(id), 409)
+	id = preview()
+	calls := provider.calls
+	a.call("POST", dayPath+"/optimization-apply", applyBody(id), 200)
+	a.call("POST", dayPath+"/optimization-apply", applyBody(id), 409)
+	after := decodeData[[]domain.Day](t, a.call("GET", base+"/days", "", 200))
+	if provider.calls != calls {
+		t.Fatal("apply called provider")
+	}
+	if after[0].Activities[0].ID != before[0].Activities[1].ID || *after[0].Activities[0].StartTime != "09:00" || *after[0].Activities[1].StartTime != "09:33" {
+		t.Fatalf("%+v", after[0])
+	}
+	for _, act := range after[0].Activities {
+		if act.Notes != "keep me" || act.DurationMinutes != 30 {
+			t.Fatal("apply changed notes/duration")
+		}
+	}
+	// Two simultaneous approvals of the same snapshot: exactly one commits.
+	id = preview()
+	statuses := make(chan int, 2)
+	for i := 0; i < 2; i++ {
+		go func() {
+			req := httptest.NewRequest("POST", dayPath+"/optimization-apply", strings.NewReader(applyBody(id)))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", "Bearer user-a")
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			statuses <- rec.Code
+		}()
+	}
+	first, second := <-statuses, <-statuses
+	if !((first == 200 && second == 409) || (first == 409 && second == 200)) {
+		t.Fatalf("concurrent statuses %d %d", first, second)
 	}
 }

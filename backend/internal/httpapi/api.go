@@ -21,12 +21,13 @@ import (
 )
 
 type API struct {
-	Store  *store.Store
-	Auth   auth.Verifier
-	Places places.Provider
-	Routes routing.MatrixProvider
-	Origin string
-	limits limiter
+	Store     *store.Store
+	Auth      auth.Verifier
+	Places    places.Provider
+	Routes    routing.MatrixProvider
+	Origin    string
+	limits    limiter
+	approvals approvalCache
 }
 type userKey struct{}
 
@@ -121,6 +122,7 @@ func (a *API) Router() http.Handler {
 	mux.HandleFunc("DELETE /api/v1/trips/{trip}/places/{place}", a.protected(a.deletePlace))
 	mux.HandleFunc("GET /api/v1/trips/{trip}/days", a.protected(a.days))
 	mux.HandleFunc("POST /api/v1/trips/{trip}/days/{day}/optimization-preview", a.protected(a.optimizationPreview))
+	mux.HandleFunc("POST /api/v1/trips/{trip}/days/{day}/optimization-apply", a.protected(a.optimizationApply))
 	mux.HandleFunc("POST /api/v1/days/{day}/activities", a.protected(a.addActivity))
 	mux.HandleFunc("PATCH /api/v1/activities/{activity}", a.protected(a.updateActivity))
 	mux.HandleFunc("DELETE /api/v1/activities/{activity}", a.protected(a.deleteActivity))

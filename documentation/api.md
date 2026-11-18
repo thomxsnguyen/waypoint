@@ -78,11 +78,37 @@ contains visits (`activity_id`, `start_minute`, `end_minute`), conflicts
 (`activity_id`, `reason`), and travel_minutes. Unknown arrival/travel estimates
 are -1. Savings is null when the original schedule is infeasible.
 
-No saved order, times, or notes change. This endpoint is not an approval token;
-its result can become stale. Apply support and its stale-plan checks are pending.
+No saved order, times, or notes change during preview. Feasible previews include
+an approval_id and expires_at; infeasible previews return null for both.
+Approval IDs expire after ten minutes and become invalid on API restart.
 
 Errors include 400 for invalid input/over 20 activities, 404 for a foreign trip
 or nonmember day, 429 for route quotas, and 503 for unconfigured/timed-out routing.
 Provider response errors use 502. Budgets are 800 elements/user/minute and 4000
 per API instance/minute, charged before requests (including failures); n stops
 cost n*n elements for n>=2. These are separate from existing API/Places limits.
+
+
+## v2 optimization approval
+
+`POST /api/v1/trips/{trip}/days/{day}/optimization-apply` accepts:
+
+```json
+{"approval_id":"the-server-issued-preview-id"}
+```
+
+Only the owning account can approve, for the exact trip/day. No order or times
+may be supplied by the client. The server applies the preview's complete order
+and start times transactionally and returns `data: {"saved": true}`. Notes,
+durations, and saved-place references are preserved. No provider calls occur.
+
+Expired, unknown, replayed, or wrong-scope IDs return 409. A changed source
+snapshot also returns 409; obtain and review a new preview. Foreign trips return
+404. Concurrent applies of the same source serialize so only one succeeds.
+
+Approvals are held in API memory (1000 maximum, ten-minute lifetime). Restart
+invalidates them; this deployment model supports a single API instance. Capacity
+exhaustion returns 503. The snapshot conservatively includes trip metadata,
+selected-day activities, and saved places. Activity/trip timestamps detect
+edit-and-revert; saved-place notes are compared by current value. No database
+migration is needed. The comparison UI remains pending.
