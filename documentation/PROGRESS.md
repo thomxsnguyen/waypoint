@@ -80,3 +80,20 @@ Commit convention: Conventional Commits, one focused change per commit.
   windows and origin inputs; preview/apply API with ownership and stale-plan
   checks; comparison UI; integration/browser validation and controlled benchmark.
 - Existing v1 release caveats remain open. Full v2 is not complete.
+
+## v2 milestone 3 — provider matrix adapter
+
+- Plan committed first (`d74c7d6`); implemented adapter and contract tests in a
+  separate feature commit. Checked Google's official Routes REST reference.
+- Added WALK and traffic-unaware DRIVE estimates, preserving directed activity
+  indices and rounding fractional seconds up to whole minutes.
+- Enforced 20 stops, 10-second deadline, response-size bound, no redirects or
+  automatic retries. Invalid/missing matrix elements fail safely; unavailable
+  routes remain explicit. No credentials or provider details enter errors.
+- Verified adapter-to-proposal integration with a controlled fixture. Go race
+  tests and vet passed; database integration tests skipped without a test DB.
+- No paid provider calls or frontend changes. The adapter is not yet exposed by
+  the API. Ownership and per-user/global element quotas must precede that step.
+- Next: authorized preview integration and provider configuration, followed by
+  stale-safe approval/apply and comparison UI. Transit/departure-time behavior,
+  visiting windows, origin inputs, and live-provider validation remain pending.
