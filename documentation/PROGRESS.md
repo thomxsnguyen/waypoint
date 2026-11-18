@@ -13,8 +13,25 @@ optimization, AI, collaboration, budgets, or reservations are authorized here.
 - Live Clerk/Google smoke tests and deployment remain unverified.
 - Existing uncommitted `compose.yaml` change belongs to the user and is excluded
   from these commits.
-- Next: map authentication failure recovery; see
-  [change plan](changes/001-map-retry.md).
+- Fixed map authentication retry; added regression coverage to the existing
+  itinerary journey. Confirmed the original loader fails the new assertion
+  (zero markers after retry) and the corrected loader passes.
+- Fixed a browser navigation race by waiting for the destination screen and
+  scoping activity removal to its card.
+- Updated Next.js and eslint-config-next from 16.4.4 to 16.4.5. Production build
+  now exits successfully. The npm audit no longer flags Next.js itself.
+- Verified Go race tests with real isolated PostgreSQL integration tests, Go vet,
+  TypeScript, lint, production build, and both browser scenarios.
+
+### Remaining release work
+
+- npm audit still reports 15 affected dependency entries (6 moderate, 9 high)
+  through development lint/glob dependencies, including minimatch and picomatch.
+  Investigate compatible transitive patches separately; do not use a forced
+  framework downgrade or describe this as a clean audit.
+- Live Clerk/Google staging verification and deployment/operator configuration
+  remain outstanding. Automated provider doubles do not prove those settings.
+- No v2 features were introduced.
 
 Commit convention: Conventional Commits, one focused change per commit.
 
