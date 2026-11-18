@@ -13,6 +13,7 @@ import (
 	"waypoint/internal/auth"
 	"waypoint/internal/httpapi"
 	"waypoint/internal/places"
+	"waypoint/internal/routing"
 	"waypoint/internal/store"
 	"waypoint/migrations"
 )
@@ -49,7 +50,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	api := &httpapi.API{Store: &store.Store{Pool: pool}, Auth: verifier, Places: places.NewGoogle(os.Getenv("GOOGLE_MAPS_SERVER_API_KEY")), Origin: origin}
+	api := &httpapi.API{Store: &store.Store{Pool: pool}, Auth: verifier, Places: places.NewGoogle(os.Getenv("GOOGLE_MAPS_SERVER_API_KEY")), Origin: origin, Routes: routing.NewGoogle(os.Getenv("GOOGLE_ROUTES_SERVER_API_KEY"))}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

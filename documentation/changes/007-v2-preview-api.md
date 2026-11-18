@@ -29,3 +29,16 @@ explicit fixed starts, response mapping, and unchanged stored itinerary.
 Document API/setup and results, commit feature separately from progress.
 
 Status: planned before implementation.
+
+## Verification result
+
+Implemented runtime wiring, the preview endpoint, JSON response mapping, and
+optional Compose configuration. Go race tests passed with TEST_DATABASE_URL set
+against isolated PostgreSQL schemas; vet passed. Integration coverage verifies
+anonymous/foreign-account rejection, nonmember day rejection, invalid mode/bounds/
+fixed IDs, ID-based reordered output, explicit fixed-time behavior, provider
+timeout, global/user quota rejection before provider calls, absent provider,
+and equality of stored days/activities before and after previews.
+
+No schema change or browser UI was introduced. Preview data can become stale;
+this milestone provides no apply operation. Live Google calls remain unverified.

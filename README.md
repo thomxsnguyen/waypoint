@@ -116,3 +116,26 @@ Test restores before relying on backups. The down migration drops all planning t
 ## Provider references
 
 Implementation follows [Clerk's Next.js integration](https://clerk.com/docs/nextjs/getting-started/quickstart) and [official Go session verification](https://clerk.com/docs/guides/sessions/verifying), plus [Google Places field masks](https://developers.google.com/maps/documentation/places/web-service/choose-fields), [storage/attribution policies](https://developers.google.com/maps/documentation/places/web-service/policies), and [advanced map markers](https://developers.google.com/maps/documentation/javascript/advanced-markers/basic-customization). Review provider terms for your billing region before deployment.
+
+## v2 backend preview (in progress)
+
+The API can preview a single day's optimized order using Google Routes estimates.
+The frontend comparison and approval/apply flow are not implemented yet. See the
+[preview API contract](documentation/api.md) and [progress log](documentation/PROGRESS.md).
+
+For native API development, configure `GOOGLE_ROUTES_SERVER_API_KEY` with a
+server-only key restricted to the Routes API, enabled with billing and project
+quotas. Keep it separate from the Places and browser keys. For Docker Compose:
+
+```sh
+docker compose -f compose.yaml -f compose.routing.yaml up --build
+```
+
+Absent routing credentials leave manual planning available; preview returns an
+unavailable error when estimates are needed. The preview supports WALK and
+traffic-unaware DRIVE, up to 20 activities, with no automatic provider retries.
+Its in-memory rate limits assume one API instance and reset on restart; configure
+Google project spending/quota controls as well. Estimates exclude the first-stop
+approach and return leg, do not check opening hours, and are not guaranteed optimal.
+A preview never saves changes. Automated tests use a fake Routes provider; live
+provider verification is still required before release.

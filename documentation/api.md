@@ -57,3 +57,32 @@ A day returns `id`, `date`, `activities`. Each activity returns `id`, `day_id`, 
 Responses use `Cache-Control: no-store`. `X-Request-ID` correlates structured logs. `429` includes `Retry-After: 60`. Common errors: `400 VALIDATION_ERROR`, `401 UNAUTHENTICATED`, `403 FORBIDDEN_ORIGIN`, `404 NOT_FOUND`, `409 CONFLICT`, `429 RATE_LIMITED/PROVIDER_RATE_LIMIT`, `502 PROVIDER_ERROR/PLACE_UNAVAILABLE`, `503 PLACES_UNAVAILABLE/DATABASE_UNAVAILABLE`, and `500 INTERNAL_ERROR`.
 
 Concurrent writes are serialized per trip. The last successful edit wins; clients refetch after mutation. A failed reorder/date change rolls back the entire transaction. Authentication uses the Clerk SDK with signature, expiry/not-before, exact issuer, authorized browser origin, session identity, and optional audience checks.
+
+## v2 optimization preview (backend milestone)
+
+`POST /api/v1/trips/{trip}/days/{day}/optimization-preview` requires the trip
+owner's session. Example body:
+
+```json
+{"travel_mode":"WALK","start_minute":540,"end_minute":1080,"fixed_activity_ids":[]}
+```
+
+Modes: WALK or DRIVE (traffic-unaware). Bounds are integer local wall-clock
+minutes in the trip's IANA time zone, between 0 and 1440, with end after start.
+Up to 20 activities. Fixed IDs must uniquely identify this day's activities with
+saved start times. Other saved times are informational and can shift in preview.
+
+The standard `data` envelope includes day_id, timezone, travel_mode, original,
+proposed, changed, savings_minutes, explanation, and assumptions. Each schedule
+contains visits (`activity_id`, `start_minute`, `end_minute`), conflicts
+(`activity_id`, `reason`), and travel_minutes. Unknown arrival/travel estimates
+are -1. Savings is null when the original schedule is infeasible.
+
+No saved order, times, or notes change. This endpoint is not an approval token;
+its result can become stale. Apply support and its stale-plan checks are pending.
+
+Errors include 400 for invalid input/over 20 activities, 404 for a foreign trip
+or nonmember day, 429 for route quotas, and 503 for unconfigured/timed-out routing.
+Provider response errors use 502. Budgets are 800 elements/user/minute and 4000
+per API instance/minute, charged before requests (including failures); n stops
+cost n*n elements for n>=2. These are separate from existing API/Places limits.

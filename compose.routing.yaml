@@ -1,0 +1,5 @@
+# Optional v2 preview configuration; combine with compose.yaml.
+services:
+  api:
+    environment:
+      GOOGLE_ROUTES_SERVER_API_KEY: ${GOOGLE_ROUTES_SERVER_API_KEY:-}
