@@ -19,6 +19,7 @@ import (
 	"time"
 	"waypoint/internal/domain"
 	"waypoint/internal/httpapi"
+	"waypoint/internal/routing"
 	"waypoint/internal/store"
 	"waypoint/migrations"
 )
@@ -55,6 +56,24 @@ func (testPlaces) Details(ctx context.Context, id string) (domain.Place, error) 
 		}
 	}
 	return domain.Place{}, errors.New("unavailable")
+}
+
+type testRoutes struct{}
+
+func (testRoutes) Matrix(_ context.Context, ids []string, _ routing.TravelMode) ([][]int, error) {
+	matrix := make([][]int, len(ids))
+	for i := range ids {
+		matrix[i] = make([]int, len(ids))
+		for j := range ids {
+			if i != j {
+				matrix[i][j] = 10
+				if ids[i] == "sensoji" {
+					matrix[i][j] = 3
+				}
+			}
+		}
+	}
+	return matrix, nil
 }
 func main() {
 	if err := run(); err != nil {
@@ -94,7 +113,7 @@ func run() error {
 	if err = migrations.Up(ctx, pool); err != nil {
 		return err
 	}
-	api := &httpapi.API{Store: &store.Store{Pool: pool}, Auth: testAuth{}, Places: testPlaces{}, Origin: "http://localhost:3100"}
+	api := &httpapi.API{Store: &store.Store{Pool: pool}, Auth: testAuth{}, Places: testPlaces{}, Routes: testRoutes{}, Origin: "http://localhost:3100"}
 	server := &http.Server{Addr: "127.0.0.1:18080", Handler: api.Router(), ReadHeaderTimeout: 5 * time.Second}
 	errs := make(chan error, 1)
 	go func() { fmt.Println("E2E API ready on 18080"); errs <- server.ListenAndServe() }()
