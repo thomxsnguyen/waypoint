@@ -59,3 +59,24 @@ Commit convention: Conventional Commits, one focused change per commit.
   this milestone changes no persistence or HTTP behavior.
 - Next: provider matrix adapter, proposal generation, preview/apply API with
   stale-plan protection, and comparison UI. v2 is not yet user-facing or complete.
+
+## v2 milestone 2 — proposal generation
+
+- Committed the plan before implementation (`428e782`), then implemented and
+  tested the heuristic in a separate feature commit.
+- Sequencing adjustment: verify proposal generation with controlled matrices
+  before connecting the travel-time provider. Scope remains single-day v2.
+- Try nearest-feasible-neighbor routes from each starting stop and up to five
+  directed segment-reversal improvement passes. Maximum 20 stops; cancellation
+  is supported. Every trial is evaluated against duration and fixed-start rules.
+- Proposals retain all activities, keep equal-cost originals, explain search
+  failure, and omit savings when the baseline is infeasible. No saved data changes.
+- Go race tests and vet passed; routing statement coverage: 96.9%. Fixtures cover
+  travel reduction, asymmetric/unavailable legs, fixed starts, impossible days,
+  deterministic output, input preservation, cancellation, and limits.
+- Database integration tests skipped without a test database in this milestone.
+  No frontend changes or live provider claims.
+- Remaining v2: provider-backed estimates and supported travel modes; visiting
+  windows and origin inputs; preview/apply API with ownership and stale-plan
+  checks; comparison UI; integration/browser validation and controlled benchmark.
+- Existing v1 release caveats remain open. Full v2 is not complete.
