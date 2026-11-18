@@ -59,10 +59,15 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 		return domain.NotFound()
 	}
 	var in struct {
-		Mode  routing.TravelMode `json:"travel_mode"`
-		Start *int               `json:"start_minute"`
-		End   *int               `json:"end_minute"`
-		Fixed []string           `json:"fixed_activity_ids"`
+		Mode    routing.TravelMode `json:"travel_mode"`
+		Start   *int               `json:"start_minute"`
+		End     *int               `json:"end_minute"`
+		Fixed   []string           `json:"fixed_activity_ids"`
+		Windows []struct {
+			ID    string `json:"activity_id"`
+			Start *int   `json:"start_minute"`
+			End   *int   `json:"end_minute"`
+		} `json:"visiting_windows"`
 	}
 	if err = decode(w, r, &in); err != nil {
 		return err
@@ -83,9 +88,21 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 		}
 		fixed[id] = true
 	}
+	windows := map[string]*routing.Window{}
+	for _, window := range in.Windows {
+		if window.Start == nil || window.End == nil {
+			return domain.Invalid("Visiting windows require both bounds.")
+		}
+		value := routing.Window{Start: *window.Start, End: *window.End}
+		if !value.Valid() || windows[window.ID] != nil {
+			return domain.Invalid("Provide unique visiting windows with increasing bounds between 0 and 1440.")
+		}
+		windows[window.ID] = &value
+	}
 	stops := make([]routing.Stop, len(day.Activities))
 	for i, activity := range day.Activities {
-		stops[i] = routing.Stop{ID: activity.ID, Duration: activity.DurationMinutes}
+		stops[i] = routing.Stop{ID: activity.ID, Duration: activity.DurationMinutes, Window: windows[activity.ID]}
+		delete(windows, activity.ID)
 		if fixed[activity.ID] {
 			if activity.StartTime == nil {
 				return domain.Invalid("A fixed activity must have a start time.")
@@ -98,6 +115,9 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 			stops[i].FixedStart = &minute
 			delete(fixed, activity.ID)
 		}
+	}
+	if len(windows) > 0 {
+		return domain.Invalid("Visiting windows must belong to the selected day.")
 	}
 	if len(fixed) > 0 {
 		return domain.Invalid("Fixed activities must belong to the selected day.")
@@ -161,11 +181,12 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 		expiresAt = expires.UTC().Format(time.RFC3339)
 	}
 	write(w, 200, map[string]any{
-		"approval_id": approvalID, "expires_at": expiresAt,
+		"visiting_windows": in.Windows,
+		"approval_id":      approvalID, "expires_at": expiresAt,
 		"day_id": day.ID, "timezone": trip.Timezone, "travel_mode": in.Mode,
 		"original": scheduleDTO(proposal.Original), "proposed": scheduleDTO(proposal.Proposed),
 		"changed": proposal.Changed, "savings_minutes": proposal.Savings, "explanation": proposal.Explanation,
-		"assumptions": []string{"Static travel estimates rounded up to whole minutes.", "No travel to the first stop or return leg is included.", "Only explicitly selected start times are fixed; opening hours are not checked.", "This heuristic does not guarantee the best route. Preview does not save changes."},
+		"assumptions": []string{"Static travel estimates rounded up to whole minutes.", "No travel to the first stop or return leg is included.", "Only selected start times and supplied visiting windows are enforced; venue opening hours are not verified.", "This heuristic does not guarantee the best route. Preview does not save changes."},
 	})
 	return nil
 }

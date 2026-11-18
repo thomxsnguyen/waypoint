@@ -8,7 +8,7 @@ import (
 )
 
 func TestProposalReducesDirectedTravel(t *testing.T) {
-	stops := []Stop{{"a", 30, nil}, {"b", 30, nil}, {"c", 30, nil}}
+	stops := []Stop{{ID: "a", Duration: 30, FixedStart: nil}, {ID: "b", Duration: 30, FixedStart: nil}, {ID: "c", Duration: 30, FixedStart: nil}}
 	matrix := [][]int{{0, 50, 5}, {40, 0, 50}, {40, 5, 0}}
 	before := [][]int{{0, 50, 5}, {40, 0, 50}, {40, 5, 0}}
 	got, err := Propose(context.Background(), stops, matrix, 540, 1020)
@@ -33,7 +33,7 @@ func TestProposalReducesDirectedTravel(t *testing.T) {
 
 func TestProposalRepairsFixedStartConflict(t *testing.T) {
 	fixed := 550
-	stops := []Stop{{"flexible", 60, nil}, {"reservation", 30, &fixed}}
+	stops := []Stop{{ID: "flexible", Duration: 60, FixedStart: nil}, {ID: "reservation", Duration: 30, FixedStart: &fixed}}
 	got, err := Propose(context.Background(), stops, [][]int{{0, 10}, {10, 0}}, 540, 720)
 	if err != nil || !got.Changed || len(got.Original.Conflicts) == 0 || len(got.Proposed.Conflicts) != 0 || got.Savings != nil {
 		t.Fatalf("%+v %v", got, err)
@@ -44,7 +44,7 @@ func TestProposalRepairsFixedStartConflict(t *testing.T) {
 }
 
 func TestProposalKeepsOriginalWhenImpossibleOrEqual(t *testing.T) {
-	stops := []Stop{{"a", 60, nil}, {"b", 60, nil}}
+	stops := []Stop{{ID: "a", Duration: 60, FixedStart: nil}, {ID: "b", Duration: 60, FixedStart: nil}}
 	for _, tc := range []struct {
 		name     string
 		matrix   [][]int
@@ -71,7 +71,7 @@ func TestProposalKeepsOriginalWhenImpossibleOrEqual(t *testing.T) {
 }
 
 func TestProposalCanAvoidUnavailableLeg(t *testing.T) {
-	stops := []Stop{{"a", 10, nil}, {"b", 10, nil}}
+	stops := []Stop{{ID: "a", Duration: 10, FixedStart: nil}, {ID: "b", Duration: 10, FixedStart: nil}}
 	got, err := Propose(context.Background(), stops, [][]int{{0, -1}, {5, 0}}, 0, 60)
 	if err != nil || !got.Changed || got.Proposed.TravelMinutes != 5 || got.Savings != nil {
 		t.Fatalf("%+v %v", got, err)
@@ -87,14 +87,14 @@ func TestProposalValidationAndCancellation(t *testing.T) {
 	if _, err := Propose(context.Background(), make([]Stop, 21), nil, 0, 60); err == nil {
 		t.Fatal("accepted excessive size")
 	}
-	if _, err := Propose(context.Background(), []Stop{{"a", 0, nil}}, [][]int{{0}}, 0, 60); err == nil {
+	if _, err := Propose(context.Background(), []Stop{{ID: "a", Duration: 0, FixedStart: nil}}, [][]int{{0}}, 0, 60); err == nil {
 		t.Fatal("accepted invalid stop")
 	}
 	empty, err := Propose(context.Background(), nil, nil, 0, 60)
 	if err != nil || empty.Changed || len(empty.Proposed.Visits) != 0 {
 		t.Fatalf("%+v %v", empty, err)
 	}
-	single, err := Propose(context.Background(), []Stop{{"a", 10, nil}}, [][]int{{0}}, 0, 60)
+	single, err := Propose(context.Background(), []Stop{{ID: "a", Duration: 10, FixedStart: nil}}, [][]int{{0}}, 0, 60)
 	if err != nil || single.Changed || single.Proposed.TravelMinutes != 0 {
 		t.Fatalf("%+v %v", single, err)
 	}

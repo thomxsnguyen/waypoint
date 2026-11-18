@@ -67,6 +67,9 @@ func Propose(ctx context.Context, stops []Stop, matrix [][]int, start, end int) 
 					continue
 				}
 				arrival := clock + leg
+				if stop.Window != nil && arrival < stop.Window.Start {
+					arrival = stop.Window.Start
+				}
 				if stop.FixedStart != nil {
 					if arrival > *stop.FixedStart {
 						continue
@@ -74,7 +77,7 @@ func Propose(ctx context.Context, stops []Stop, matrix [][]int, start, end int) 
 					arrival = *stop.FixedStart
 				}
 				finish := arrival + stop.Duration
-				if finish > end {
+				if finish > end || (stop.Window != nil && finish > stop.Window.End) {
 					continue
 				}
 				if leg < distance {

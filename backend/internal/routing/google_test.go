@@ -67,7 +67,7 @@ func TestGoogleMatrixContractAndProposal(t *testing.T) {
 			if err != nil || !reflect.DeepEqual(matrix, [][]int{{0, 10}, {3, 0}}) {
 				t.Fatalf("%v %v", matrix, err)
 			}
-			proposal, err := Propose(context.Background(), []Stop{{"a", 30, nil}, {"b", 30, nil}}, matrix, 540, 720)
+			proposal, err := Propose(context.Background(), []Stop{{ID: "a", Duration: 30, FixedStart: nil}, {ID: "b", Duration: 30, FixedStart: nil}}, matrix, 540, 720)
 			if err != nil || !proposal.Changed || proposal.Savings == nil || *proposal.Savings != 7 {
 				t.Fatalf("%+v %v", proposal, err)
 			}

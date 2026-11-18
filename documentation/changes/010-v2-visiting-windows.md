@@ -21,3 +21,12 @@ Validate opening wait, exact closing, overrun, fixed-time/window conflict,
 constraint-driven reorder, invalid inputs/no provider call, API approval behavior,
 and browser preview conflict then successful constrained apply. Run appropriate
 Go/PostgreSQL/frontend/browser checks; document results and commit in stages.
+
+## Backend validation
+
+Evaluator and heuristic now enforce waiting and whole-visit closing boundaries.
+Preview validates optional visiting_windows before provider calls and returns the
+supplied limits with the comparison. Infeasible windows yield conflicts and no
+approval ID. Go race suite with PostgreSQL and vet passed, covering opening wait,
+exact closing, overrun, fixed/opening conflict, constraint-driven reorder, invalid
+bounds/foreign IDs, and suppression of approval for impossible windows.

@@ -8,7 +8,12 @@ type Stop struct {
 	ID         string
 	Duration   int
 	FixedStart *int
+	Window     *Window
 }
+
+type Window struct{ Start, End int }
+
+func (w Window) Valid() bool { return w.Start >= 0 && w.End <= 1440 && w.Start < w.End }
 
 type Visit struct {
 	ID         string
@@ -45,6 +50,9 @@ func Evaluate(stops []Stop, matrix [][]int, order []int, start, end int) (Evalua
 		if stop.FixedStart != nil && (*stop.FixedStart < 0 || *stop.FixedStart >= 1440) {
 			return result, fmt.Errorf("invalid fixed start")
 		}
+		if stop.Window != nil && !stop.Window.Valid() {
+			return result, fmt.Errorf("invalid visiting window")
+		}
 		for j, minutes := range matrix[i] {
 			if minutes < -1 || minutes > 1440 || (i == j && minutes != 0) {
 				return result, fmt.Errorf("invalid travel duration")
@@ -76,6 +84,9 @@ func Evaluate(stops []Stop, matrix [][]int, order []int, start, end int) (Evalua
 			result.Conflicts = append(result.Conflicts, Conflict{stop.ID, "arrival cannot be estimated"})
 			continue
 		}
+		if stop.Window != nil && clock < stop.Window.Start {
+			clock = stop.Window.Start
+		}
 		if stop.FixedStart != nil {
 			if clock > *stop.FixedStart {
 				result.Conflicts = append(result.Conflicts, Conflict{stop.ID, "fixed start cannot be met"})
@@ -86,6 +97,9 @@ func Evaluate(stops []Stop, matrix [][]int, order []int, start, end int) (Evalua
 		visit := Visit{stop.ID, clock, clock + stop.Duration}
 		clock = visit.End
 		result.Visits = append(result.Visits, visit)
+		if stop.Window != nil && clock > stop.Window.End {
+			result.Conflicts = append(result.Conflicts, Conflict{stop.ID, "activity exceeds visiting window"})
+		}
 		if clock > end {
 			result.Conflicts = append(result.Conflicts, Conflict{stop.ID, "activity exceeds day boundary"})
 		}

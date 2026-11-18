@@ -7,7 +7,7 @@ import (
 
 func TestDirectedTravelAndWaiting(t *testing.T) {
 	fixed := 600
-	stops := []Stop{{"a", 30, nil}, {"b", 60, &fixed}}
+	stops := []Stop{{ID: "a", Duration: 30, FixedStart: nil}, {ID: "b", Duration: 60, FixedStart: &fixed}}
 	matrix := [][]int{{0, 10}, {40, 0}}
 	got, err := Evaluate(stops, matrix, []int{0, 1}, 540, 1020)
 	if err != nil || got.TravelMinutes != 10 || len(got.Conflicts) != 0 || got.Visits[1].Start != 600 {
@@ -24,7 +24,7 @@ func TestDirectedTravelAndWaiting(t *testing.T) {
 
 func TestConflictsPreserveEveryStop(t *testing.T) {
 	fixed := 550
-	stops := []Stop{{"a", 60, nil}, {"b", 60, &fixed}, {"c", 20, nil}}
+	stops := []Stop{{ID: "a", Duration: 60, FixedStart: nil}, {ID: "b", Duration: 60, FixedStart: &fixed}, {ID: "c", Duration: 20, FixedStart: nil}}
 	for _, tc := range []struct {
 		name   string
 		matrix [][]int
@@ -49,7 +49,7 @@ func TestConflictsPreserveEveryStop(t *testing.T) {
 }
 
 func TestRejectInvalidOrdersAndMatrices(t *testing.T) {
-	stops := []Stop{{"a", 30, nil}, {"b", 30, nil}}
+	stops := []Stop{{ID: "a", Duration: 30, FixedStart: nil}, {ID: "b", Duration: 30, FixedStart: nil}}
 	for _, order := range [][]int{{0}, {0, 0}, {-1, 1}, {0, 2}} {
 		if _, err := Evaluate(stops, [][]int{{0, 10}, {10, 0}}, order, 0, 1440); err == nil {
 			t.Fatalf("accepted %v", order)

@@ -56,6 +56,27 @@ func TestOptimizationPreview(t *testing.T) {
 	if provider.calls != 0 {
 		t.Fatal("invalid or unauthorized request called provider")
 	}
+	for _, window := range []string{
+		`{"activity_id":"foreign","start_minute":540,"end_minute":600}`,
+		fmt.Sprintf(`{"activity_id":%q,"start_minute":600}`, before[0].Activities[0].ID),
+		fmt.Sprintf(`{"activity_id":%q,"start_minute":600,"end_minute":500}`, before[0].Activities[0].ID),
+	} {
+		a.call("POST", path, `{"travel_mode":"WALK","start_minute":540,"end_minute":720,"visiting_windows":[`+window+`]}`, 400)
+	}
+	if provider.calls != 0 {
+		t.Fatal("invalid visiting window called provider")
+	}
+	constrained := fmt.Sprintf(`{"travel_mode":"WALK","start_minute":540,"end_minute":720,"visiting_windows":[{"activity_id":%q,"start_minute":600,"end_minute":620}]}`, before[0].Activities[0].ID)
+	var infeasible struct {
+		ApprovalID *string `json:"approval_id"`
+		Proposed   previewSchedule
+	}
+	if err := json.Unmarshal(a.call("POST", path, constrained, 200), &infeasible); err != nil {
+		t.Fatal(err)
+	}
+	if infeasible.ApprovalID != nil || len(infeasible.Proposed.Conflicts) == 0 {
+		t.Fatal("impossible window was approved")
+	}
 	var preview struct {
 		Changed  bool
 		Savings  int `json:"savings_minutes"`
