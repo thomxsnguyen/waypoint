@@ -96,8 +96,43 @@ test("review, cancel, stale approval, apply and reload", async ({
   expect((await readDays())[0].activities[0].notes).toBe(
     "Edited in another tab",
   );
+  await dialog
+    .getByText("Visiting windows (optional)", { exact: true })
+    .click();
+  await dialog
+    .getByLabel("Earliest start for Tokyo National Museum")
+    .fill("10:00");
+  await dialog.getByRole("button", { name: "Generate preview" }).click();
+  await expect(dialog.getByRole("alert")).toContainText(
+    "Enter both visiting-window bounds",
+  );
+  await dialog
+    .getByLabel("Latest finish for Tokyo National Museum")
+    .fill("10:20");
+  await dialog.getByRole("button", { name: "Generate preview" }).click();
+  await expect(
+    dialog.getByRole("button", { name: "Apply proposed schedule" }),
+  ).toBeDisabled();
+  await expect(
+    dialog.getByRole("region", { name: "Proposed schedule", exact: true }),
+  ).toContainText("activity exceeds visiting window");
+  await dialog
+    .getByLabel("Latest finish for Tokyo National Museum")
+    .fill("10:30");
+  await dialog
+    .getByLabel("Earliest start for Tokyo National Museum")
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: "test-results/optimization-windows-mobile.png",
+  });
+  expect(
+    await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth),
+  ).toBeTruthy();
   await dialog.getByRole("button", { name: "Generate preview" }).click();
   await expect(dialog.getByText("7 min estimated travel saved")).toBeVisible();
+  await expect(
+    dialog.getByRole("region", { name: "Proposed schedule", exact: true }),
+  ).toContainText("10:00 – 10:30");
   await dialog.getByRole("button", { name: "Apply proposed schedule" }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByText("Approved schedule saved.")).toBeVisible();
@@ -105,7 +140,7 @@ test("review, cancel, stale approval, apply and reload", async ({
   await expect(page.locator(".activity-card").first()).toContainText(
     "Sensō-ji",
   );
-  await expect(page.locator(".activity-card").last()).toContainText("09:33");
+  await expect(page.locator(".activity-card").last()).toContainText("10:00");
   await expect(page.locator(".activity-card").last()).toContainText(
     "Edited in another tab",
   );

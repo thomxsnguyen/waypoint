@@ -112,3 +112,18 @@ exhaustion returns 503. The snapshot conservatively includes trip metadata,
 selected-day activities, and saved places. Activity/trip timestamps detect
 edit-and-revert; saved-place notes are compared by current value. No database
 migration is needed. The itinerary comparison dialog uses this preview/approval flow.
+
+### Optional visiting windows
+
+Preview accepts `visiting_windows`, an array of
+`{"activity_id":"…","start_minute":600,"end_minute":630}`. Each activity may
+appear once and must belong to the selected day. Both integer bounds are required,
+0 <= start < end <= 1440. The visit may wait until start and must finish by end;
+finishing exactly at closing is allowed. Fixed starts and day bounds also apply.
+Malformed/duplicate/foreign windows return 400 before any Routes call. A valid
+window too short for the activity yields a conflict and no approval ID.
+
+The response echoes supplied windows. These are user-entered constraints for the
+current preview, not verified venue opening hours. They are not persisted as
+reusable constraints: approval saves only the reviewed activity order/start times.
+Changing a window in the UI discards its previous preview and approval.

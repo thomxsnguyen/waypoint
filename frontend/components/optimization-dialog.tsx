@@ -63,6 +63,27 @@ export function OptimizationDialog({
       setError("Day end must be after day start.");
       return;
     }
+    const windows: {
+      activity_id: string;
+      start_minute: number;
+      end_minute: number;
+    }[] = [];
+    for (const activity of day.activities) {
+      const opening = String(data.get(`opening-${activity.id}`) || "");
+      const closing = String(data.get(`closing-${activity.id}`) || "");
+      if (!opening && !closing) continue;
+      if (!opening || !closing || minutes(opening) >= minutes(closing)) {
+        setError(
+          `Enter both visiting-window bounds, with finish after start, for ${name(activity.id)}.`,
+        );
+        return;
+      }
+      windows.push({
+        activity_id: activity.id,
+        start_minute: minutes(opening),
+        end_minute: minutes(closing),
+      });
+    }
     setBusy(true);
     try {
       setPreview(
@@ -73,6 +94,7 @@ export function OptimizationDialog({
             start_minute: start,
             end_minute: end,
             fixed_activity_ids: data.getAll("fixed"),
+            visiting_windows: windows,
           }),
         ),
       );
@@ -154,6 +176,29 @@ export function OptimizationDialog({
               <p>No saved start times to fix.</p>
             )}
           </fieldset>
+          <details>
+            <summary>Visiting windows (optional)</summary>
+            <p className="muted small">
+              Enter times you have checked. Each visit must fit fully within its
+              window. These limits apply to this preview only and are not saved
+              as opening hours.
+            </p>
+            {day.activities.map((activity) => (
+              <fieldset key={activity.id}>
+                <legend>{name(activity.id)}</legend>
+                <div className="optimization-columns">
+                  <label>
+                    Earliest start for {name(activity.id)}
+                    <input type="time" name={`opening-${activity.id}`} />
+                  </label>
+                  <label>
+                    Latest finish for {name(activity.id)}
+                    <input type="time" name={`closing-${activity.id}`} />
+                  </label>
+                </div>
+              </fieldset>
+            ))}
+          </details>
           <button type="submit">
             {busy ? "Working…" : "Generate preview"}
           </button>

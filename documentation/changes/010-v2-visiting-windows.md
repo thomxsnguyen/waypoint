@@ -30,3 +30,16 @@ supplied limits with the comparison. Infeasible windows yield conflicts and no
 approval ID. Go race suite with PostgreSQL and vet passed, covering opening wait,
 exact closing, overrun, fixed/opening conflict, constraint-driven reorder, invalid
 bounds/foreign IDs, and suppression of approval for impossible windows.
+
+## UI and end-to-end validation
+
+Added a collapsible optional window section with per-activity earliest start and
+latest finish. Partial/inverted inputs are rejected locally; edits invalidate
+preview. The existing comparison explains conflicts and disables infeasible
+approval. API/setup docs explain that limits are user-supplied and preview-only.
+
+Typecheck, lint, production build, and all three browser scenarios passed. The
+optimization scenario now verifies partial-window feedback, disabled approval
+for an impossible window, successful exact-closing preview/apply, and persisted
+10:00 start after reload. Mobile overflow check passed; window controls screenshot
+was visually inspected. No provider calls, schema changes, or new travel modes.

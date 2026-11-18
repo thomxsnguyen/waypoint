@@ -120,7 +120,7 @@ Implementation follows [Clerk's Next.js integration](https://clerk.com/docs/next
 ## v2 backend preview (in progress)
 
 The API can preview a single day's optimized order using Google Routes estimates.
-The API also supports explicit approval with stale-plan protection. On the itinerary screen, choose **Optimize day**, set bounds and any fixed starts,
+The API also supports explicit approval with stale-plan protection. On the itinerary screen, choose **Optimize day**, set day bounds, optional visiting windows, and any fixed starts,
 then generate and review the comparison. **Apply proposed schedule** saves the
 reviewed order and times; **Cancel** keeps your saved plan. See the
 [preview API contract](documentation/api.md) and [progress log](documentation/PROGRESS.md).
@@ -138,7 +138,9 @@ unavailable error when estimates are needed. The preview supports WALK and
 traffic-unaware DRIVE, up to 20 activities, with no automatic provider retries.
 Its in-memory rate limits assume one API instance and reset on restart; configure
 Google project spending/quota controls as well. Estimates exclude the first-stop
-approach and return leg, do not check opening hours, and are not guaranteed optimal.
+approach and return leg, do not verify venue opening hours, and are not guaranteed optimal.
+Visiting windows are supplied by you for each preview; each complete visit must
+fit within its window. These constraints are not saved as reusable opening hours.
 A preview never saves changes. Applying its server-issued approval ID saves the
 reviewed order and start times atomically. IDs expire after ten minutes and on API
 restart; approvals support one API instance. Automated tests use a fake Routes provider; live
