@@ -13,3 +13,10 @@ still charge all requested elements. UI default remains start at first activity.
 Test origin-driven reordering, unavailable first leg, invalid vectors, foreign
 saved place rejection, and browser persistence with an explicit starting place.
 No schema migration or free-text geocoding. Document before implementation.
+
+Implemented optional origin vectors through evaluation and proposal generation,
+provider matrix capacity of 21 locations, owned saved-place lookup, and UI choice.
+Go race/PostgreSQL tests, vet, frontend typecheck and lint passed. Fixtures verify
+origin-driven ordering, included first-leg time/cost, unavailable origin routes,
+and invalid vectors/foreign starting places. Full browser coverage follows with
+remaining v2 integration work.

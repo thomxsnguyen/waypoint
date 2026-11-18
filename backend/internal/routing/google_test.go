@@ -125,7 +125,7 @@ func TestGoogleMatrixValidationAndCancellation(t *testing.T) {
 	if _, err := g.Matrix(context.Background(), []string{"a", "b"}, "TRANSIT"); err == nil {
 		t.Fatal("unsupported mode")
 	}
-	if _, err := g.Matrix(context.Background(), make([]string, 21), Walk); err == nil {
+	if _, err := g.Matrix(context.Background(), make([]string, 22), Walk); err == nil {
 		t.Fatal("over limit")
 	}
 	if _, err := g.Matrix(context.Background(), []string{"", "b"}, Walk); err == nil {

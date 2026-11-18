@@ -15,6 +15,8 @@ type Window struct{ Start, End int }
 
 func (w Window) Valid() bool { return w.Start >= 0 && w.End <= 1440 && w.Start < w.End }
 
+type Options struct{ OriginMinutes []int }
+
 type Visit struct {
 	ID         string
 	Start, End int
@@ -34,11 +36,26 @@ type Evaluation struct {
 // Evaluate requires an exact permutation of stops. Matrix indices refer to stops,
 // not order; directed legs may differ. -1 represents an unavailable route.
 // After an unavailable leg, downstream times cannot be estimated and use -1.
-func Evaluate(stops []Stop, matrix [][]int, order []int, start, end int) (Evaluation, error) {
+func Evaluate(stops []Stop, matrix [][]int, order []int, start, end int, options ...Options) (Evaluation, error) {
 	result := Evaluation{Visits: []Visit{}, Conflicts: []Conflict{}}
 	n := len(stops)
 	if start < 0 || end > 1440 || start >= end || n > 100 || len(matrix) != n || len(order) != n {
 		return result, fmt.Errorf("invalid day bounds or schedule dimensions")
+	}
+	origin := make([]int, n)
+	if len(options) > 1 {
+		return result, fmt.Errorf("invalid options")
+	}
+	if len(options) == 1 && options[0].OriginMinutes != nil {
+		if len(options[0].OriginMinutes) != n {
+			return result, fmt.Errorf("invalid origin vector")
+		}
+		origin = options[0].OriginMinutes
+	}
+	for _, minutes := range origin {
+		if minutes < -1 || minutes > 1440 {
+			return result, fmt.Errorf("invalid origin duration")
+		}
 	}
 	seenIDs := map[string]bool{}
 	seen := make([]bool, n)
@@ -69,8 +86,12 @@ func Evaluate(stops []Stop, matrix [][]int, order []int, start, end int) (Evalua
 	reachable := true
 	for position, index := range order {
 		stop := stops[index]
+		leg := origin[index]
 		if position > 0 {
-			leg := matrix[order[position-1]][index]
+			leg = matrix[order[position-1]][index]
+		}
+		{
+
 			if leg < 0 {
 				reachable = false
 				result.Conflicts = append(result.Conflicts, Conflict{stop.ID, "route unavailable"})

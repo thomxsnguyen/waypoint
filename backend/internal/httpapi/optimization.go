@@ -59,6 +59,7 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 		return domain.NotFound()
 	}
 	var in struct {
+		Origin  string             `json:"origin_saved_place_id"`
 		Mode    routing.TravelMode `json:"travel_mode"`
 		Start   *int               `json:"start_minute"`
 		End     *int               `json:"end_minute"`
@@ -140,6 +141,14 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 			return domain.Conflict("The itinerary changed. Refresh before requesting a preview.")
 		}
 	}
+	var originID string
+	if in.Origin != "" {
+		originID = byID[in.Origin]
+		if originID == "" {
+			return domain.Invalid("Starting place must belong to this trip.")
+		}
+		ids = append(ids, originID)
+	}
 	cost := len(ids) * len(ids)
 	if len(ids) < 2 {
 		cost = 0
@@ -154,7 +163,22 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-	proposal, err := routing.Propose(r.Context(), stops, matrix, *in.Start, *in.End)
+	options := routing.Options{}
+	if originID != "" {
+		n := len(stops)
+		if len(matrix) != n+1 || len(matrix[n]) != n+1 {
+			return errors.New("invalid origin matrix")
+		}
+		options.OriginMinutes = matrix[n][:n]
+		matrix = matrix[:n]
+		for i := range matrix {
+			if len(matrix[i]) != n+1 {
+				return errors.New("invalid matrix")
+			}
+			matrix[i] = matrix[i][:n]
+		}
+	}
+	proposal, err := routing.Propose(r.Context(), stops, matrix, *in.Start, *in.End, options)
 	if err != nil {
 		return err
 	}
@@ -180,13 +204,18 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 		approvalID = id
 		expiresAt = expires.UTC().Format(time.RFC3339)
 	}
+	originAssumption := "No travel to the first stop or return leg is included."
+	if originID != "" {
+		originAssumption = "Travel from the selected starting place is included; no return leg is included."
+	}
 	write(w, 200, map[string]any{
-		"visiting_windows": in.Windows,
-		"approval_id":      approvalID, "expires_at": expiresAt,
+		"origin_saved_place_id": in.Origin,
+		"visiting_windows":      in.Windows,
+		"approval_id":           approvalID, "expires_at": expiresAt,
 		"day_id": day.ID, "timezone": trip.Timezone, "travel_mode": in.Mode,
 		"original": scheduleDTO(proposal.Original), "proposed": scheduleDTO(proposal.Proposed),
 		"changed": proposal.Changed, "savings_minutes": proposal.Savings, "explanation": proposal.Explanation,
-		"assumptions": []string{"Static travel estimates rounded up to whole minutes.", "No travel to the first stop or return leg is included.", "Only selected start times and supplied visiting windows are enforced; venue opening hours are not verified.", "This heuristic does not guarantee the best route. Preview does not save changes."},
+		"assumptions": []string{"Static travel estimates rounded up to whole minutes.", originAssumption, "Only selected start times and supplied visiting windows are enforced; venue opening hours are not verified.", "This heuristic does not guarantee the best route. Preview does not save changes."},
 	})
 	return nil
 }

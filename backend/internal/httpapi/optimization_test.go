@@ -28,7 +28,19 @@ func (p *testRoutes) Matrix(_ context.Context, ids []string, mode routing.Travel
 	if p.err != nil {
 		return nil, p.err
 	}
-	return [][]int{{0, 10}, {3, 0}}, nil
+	matrix := make([][]int, len(ids))
+	for i := range ids {
+		matrix[i] = make([]int, len(ids))
+		for j := range ids {
+			if ids[i] != ids[j] {
+				matrix[i][j] = 10
+				if strings.HasSuffix(ids[i], "-1") {
+					matrix[i][j] = 3
+				}
+			}
+		}
+	}
+	return matrix, nil
 }
 func TestOptimizationPreview(t *testing.T) {
 	pool := database(t)
@@ -53,6 +65,7 @@ func TestOptimizationPreview(t *testing.T) {
 	for _, invalid := range []string{`{}`, `{"travel_mode":"TRANSIT","start_minute":540,"end_minute":720}`, `{"travel_mode":"WALK","start_minute":720,"end_minute":540}`, `{"travel_mode":"WALK","start_minute":540,"end_minute":720,"fixed_activity_ids":["foreign"]}`} {
 		a.call("POST", path, invalid, 400)
 	}
+	a.call("POST", path, `{"travel_mode":"WALK","start_minute":540,"end_minute":720,"origin_saved_place_id":"foreign"}`, 400)
 	if provider.calls != 0 {
 		t.Fatal("invalid or unauthorized request called provider")
 	}

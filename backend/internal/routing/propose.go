@@ -19,7 +19,7 @@ type Proposal struct {
 
 // Propose uses static directed travel estimates and a bounded heuristic; it does
 // not prove global optimality or infeasibility. Stops begin in their saved order.
-func Propose(ctx context.Context, stops []Stop, matrix [][]int, start, end int) (Proposal, error) {
+func Propose(ctx context.Context, stops []Stop, matrix [][]int, start, end int, options ...Options) (Proposal, error) {
 	if err := ctx.Err(); err != nil {
 		return Proposal{}, err
 	}
@@ -31,9 +31,13 @@ func Propose(ctx context.Context, stops []Stop, matrix [][]int, start, end int) 
 	for i := range originalOrder {
 		originalOrder[i] = i
 	}
-	baseline, err := Evaluate(stops, matrix, originalOrder, start, end)
+	baseline, err := Evaluate(stops, matrix, originalOrder, start, end, options...)
 	if err != nil {
 		return Proposal{}, err
+	}
+	origin := make([]int, n)
+	if len(options) == 1 && options[0].OriginMinutes != nil {
+		origin = options[0].OriginMinutes
 	}
 	result := Proposal{Original: baseline, Proposed: baseline, Order: slices.Clone(originalOrder)}
 	best := baseline
@@ -59,7 +63,7 @@ func Propose(ctx context.Context, stops []Stop, matrix [][]int, start, end int) 
 				if used[candidate] || (len(order) == 0 && candidate != first) {
 					continue
 				}
-				leg := 0
+				leg := origin[candidate]
 				if len(order) > 0 {
 					leg = matrix[order[len(order)-1]][candidate]
 				}
@@ -97,7 +101,7 @@ func Propose(ctx context.Context, stops []Stop, matrix [][]int, start, end int) 
 	}
 	for _, seed := range seeds {
 		order := slices.Clone(seed)
-		evaluated, _ := Evaluate(stops, matrix, order, start, end)
+		evaluated, _ := Evaluate(stops, matrix, order, start, end, options...)
 		consider(order, evaluated)
 		// Only feasible schedules are locally improved; greedy seeds can repair an
 		// infeasible baseline without presenting partially scheduled proposals.
@@ -113,7 +117,7 @@ func Propose(ctx context.Context, stops []Stop, matrix [][]int, start, end int) 
 					}
 					candidate := slices.Clone(order)
 					slices.Reverse(candidate[i : j+1])
-					trial, _ := Evaluate(stops, matrix, candidate, start, end)
+					trial, _ := Evaluate(stops, matrix, candidate, start, end, options...)
 					if len(trial.Conflicts) == 0 && trial.TravelMinutes < evaluated.TravelMinutes {
 						order, evaluated, improved = candidate, trial, true
 					}

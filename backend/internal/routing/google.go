@@ -52,8 +52,8 @@ func (g *Google) Matrix(ctx context.Context, ids []string, mode TravelMode) ([][
 		return nil, domain.Invalid("Choose walking or driving for this routing version.")
 	}
 	n := len(ids)
-	if n > 20 {
-		return nil, domain.Invalid("Route estimates support at most 20 activities.")
+	if n > 21 {
+		return nil, domain.Invalid("Route estimates support at most 21 locations.")
 	}
 	for _, id := range ids {
 		if err := domain.ValidatePlaceID(id); err != nil {

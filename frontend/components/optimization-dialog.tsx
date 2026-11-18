@@ -91,6 +91,7 @@ export function OptimizationDialog({
           `${base}/optimization-preview`,
           json("POST", {
             travel_mode: data.get("mode"),
+            origin_saved_place_id: data.get("origin"),
             start_minute: start,
             end_minute: end,
             fixed_activity_ids: data.getAll("fixed"),
@@ -149,6 +150,22 @@ export function OptimizationDialog({
               <option value="DRIVE">Driving (without traffic)</option>
             </select>
           </label>
+          <label>
+            Starting place
+            <select name="origin" defaultValue="">
+              <option value="">Start at the first activity</option>
+              {places.map((p, i) => (
+                <option key={p.id} value={p.id}>
+                  {p.details?.name ||
+                    `Saved place ${i + 1} (details unavailable)`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="muted small">
+            With a starting place, day start is your departure time. Return
+            travel is not included.
+          </p>
           <div className="optimization-columns">
             <label>
               Day start
