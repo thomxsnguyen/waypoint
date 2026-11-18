@@ -97,3 +97,22 @@ Commit convention: Conventional Commits, one focused change per commit.
 - Next: authorized preview integration and provider configuration, followed by
   stale-safe approval/apply and comparison UI. Transit/departure-time behavior,
   visiting windows, origin inputs, and live-provider validation remain pending.
+
+## v2 milestone 4 — authorized preview API
+
+- Plan committed before implementation (`633d8a6`). Added trip/day preview route
+  with ownership and day-membership checks, explicit fixed activity selection,
+  day bounds, and WALK/DRIVE selection.
+- Runtime uses a separate server Routes key. Added optional compose.routing.yaml
+  without modifying the user's existing compose.yaml change.
+- Separate route budgets enforce 800 elements/user/minute and 4000/global/minute
+  for one API instance. A preview consumes n*n elements for n>=2, even on provider
+  failure. Project-level quotas remain necessary across restarts/instances.
+- Returned original/proposed schedules use activity IDs and explain assumptions;
+  unknown estimates use -1 and infeasible-baseline savings are null. No writes.
+- Real PostgreSQL integration tests plus full Go race suite and vet passed.
+  Tests cover authorization, validation, quotas, timeout, fixed-time behavior,
+  response mapping, and unchanged persisted activities.
+- API/setup documentation updated. No paid Google requests or frontend changes.
+- Next: approval/apply with stale-plan protection and comparison UI. Visiting
+  windows, origin inputs, transit semantics, and live-provider checks remain open.
