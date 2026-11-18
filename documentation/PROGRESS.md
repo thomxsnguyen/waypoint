@@ -17,3 +17,15 @@ optimization, AI, collaboration, budgets, or reservations are authorized here.
   [change plan](changes/001-map-retry.md).
 
 Commit convention: Conventional Commits, one focused change per commit.
+
+## Development workflow
+
+1. Compare each proposed change with committed MVP scope.
+2. Write a change plan before implementation, including acceptance criteria.
+3. Keep changes small and add regression coverage for concrete failures.
+4. Use an isolated test database and provider doubles for automated checks.
+5. Run relevant static checks, integration tests, and browser flows; investigate
+   failures rather than hiding them with sleeps or retries.
+6. Review the diff and secret handling, update this log with actual results,
+   and commit using Conventional Commits. Preserve unrelated user changes.
+7. Keep live-provider staging and deployment checks distinct from automated tests.
