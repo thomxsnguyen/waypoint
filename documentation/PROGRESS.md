@@ -155,3 +155,21 @@ Commit convention: Conventional Commits, one focused change per commit.
 - Remaining scope: origin inputs, visiting windows, transit semantics, controlled
   benchmarks, and live-provider staging verification. Existing release caveats
   remain open; full v2 is not complete.
+
+## v2 milestone 7 — visiting windows
+
+- Plan committed first (`fbef2fd`); backend constraints committed separately
+  (`13047a2`) from UI and browser coverage.
+- Added optional per-activity earliest-start/latest-finish windows. Evaluation
+  waits for opening and requires the full duration to fit; exact closing is valid.
+  Greedy/reversal candidates honor windows together with fixed starts/day bounds.
+- Preview rejects malformed/duplicate/foreign windows before provider work;
+  impossible valid windows retain activities, show conflicts, and issue no approval.
+- UI collects checked-by-user windows for the current preview only. Constraints
+  are not saved as reusable venue hours; Apply saves reviewed order/start times.
+- Go race suite with PostgreSQL and vet passed. Frontend typecheck, lint,
+  production build, and all three browser scenarios passed. New browser coverage
+  verifies partial input, infeasible approval disabled, exact-closing apply, and
+  time persistence after reload. Mobile controls inspected and overflow checked.
+- Remaining v2: starting location, transit/departure semantics, controlled
+  benchmarks, live-provider staging verification, and existing release caveats.
