@@ -116,3 +116,22 @@ Commit convention: Conventional Commits, one focused change per commit.
 - API/setup documentation updated. No paid Google requests or frontend changes.
 - Next: approval/apply with stale-plan protection and comparison UI. Visiting
   windows, origin inputs, transit semantics, and live-provider checks remain open.
+
+## v2 milestone 5 — approval and apply
+
+- Plan committed first (`f297137`), followed by the implementation and tests.
+- Feasible previews issue opaque approval IDs valid for ten minutes. The bounded
+  in-memory cache supports one API instance and invalidates approvals on restart.
+- Snapshot checks bracket preview computation. Apply reauthorizes ownership,
+  checks approval scope, locks the trip, compares the source snapshot, and saves
+  the approved activity order/start times in one transaction. Notes/durations stay.
+- Unknown, expired, replayed, wrong-scope, and stale approvals are rejected.
+  Client-supplied schedules are rejected. No provider calls occur during apply.
+- Full Go race suite with isolated PostgreSQL and vet passed. Additional targeted
+  race tests passed after expanding coverage for infeasible previews and mutation
+  during provider computation. Concurrent apply test confirms one commit/one 409.
+- API/setup docs now describe approval expiry, restart behavior, and snapshot
+  semantics. No schema migration, UI, or live provider request was introduced.
+- Next: comparison/approval UI and browser coverage. Origin inputs, visiting
+  windows, transit semantics, and live-provider staging verification remain open;
+  v2 is not complete.
