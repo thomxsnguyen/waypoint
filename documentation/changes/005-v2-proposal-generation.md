@@ -33,4 +33,16 @@ unavailable routes, impossible days, unchanged equal-cost orders, cancellation,
 size limits, and preservation of inputs/activity IDs. Run race tests and vet.
 Record results and limitations in PROGRESS.md before the implementation commit.
 
-Status: planned before implementation.
+Status: implemented and verified.
+
+Results: Go race tests and vet passed; routing package statement coverage is
+96.9%. The directed fixture improves from 100 to 10 travel minutes. Tests verify
+fixed-start repair, unavailable-leg avoidance, infeasible/equal-cost fallback,
+input preservation, deterministic results, invalid inputs, and cancellation.
+Database integration tests skip without TEST_DATABASE_URL; this change adds no
+HTTP or persistence behavior. No live provider calls or browser changes occurred.
+
+Limitations: static matrix estimates; no origin/return leg, opening windows, or
+traffic-dependent re-estimation yet. Greedy construction may miss feasible
+solutions, and bounded reversal search may miss lower-cost solutions. The result
+explains search failure without declaring mathematical infeasibility.
