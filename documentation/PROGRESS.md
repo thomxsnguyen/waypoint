@@ -1,7 +1,8 @@
-# MVP progress
+# Project progress
 
-Scope: finish and verify the existing v1 manual trip planner. No routing,
-optimization, AI, collaboration, budgets, or reservations are authorized here.
+Initial scope: finish and verify the v1 manual trip planner. On 2026-11-17,
+the user authorized v2 single-day smart planning under the project scope.
+AI, collaboration, budgets, and booking remain outside this work.
 
 ## 2026-11-17
 
@@ -46,3 +47,15 @@ Commit convention: Conventional Commits, one focused change per commit.
 6. Review the diff and secret handling, update this log with actual results,
    and commit using Conventional Commits. Preserve unrelated user changes.
 7. Keep live-provider staging and deployment checks distinct from automated tests.
+
+## v2 milestone 1 — schedule evaluation
+
+- Documented the milestone before implementation in changes/004-v2-schedule-evaluation.md.
+- Added a pure Go evaluator for directed travel matrices, fixed starts, waiting,
+  unavailable routes, and day boundaries. Inputs and persisted plans are unchanged.
+- Regression tests cover asymmetric legs, conflicts, preservation of activities,
+  invalid orders/matrices, and duplicate activity IDs.
+- Go race tests and vet passed. Database tests skip without TEST_DATABASE_URL;
+  this milestone changes no persistence or HTTP behavior.
+- Next: provider matrix adapter, proposal generation, preview/apply API with
+  stale-plan protection, and comparison UI. v2 is not yet user-facing or complete.

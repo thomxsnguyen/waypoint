@@ -20,3 +20,5 @@ Next milestones: provider-backed matrix adapter with quotas/timeouts; feasible
 single-day proposal heuristic; authorized preview/apply API with stale-plan
 protection; comparison UI and integration/browser tests. No multi-day optimizer,
 AI, booking, budgets, collaboration, or workers.
+
+Status: implemented; Go race tests and vet passed. Provider integration and UI remain pending.
