@@ -20,7 +20,7 @@ type testRoutes struct {
 	hook  func()
 }
 
-func (p *testRoutes) Matrix(_ context.Context, ids []string, mode routing.TravelMode) ([][]int, error) {
+func (p *testRoutes) Matrix(_ context.Context, ids []string, mode routing.TravelMode, _ ...time.Time) ([][]int, error) {
 	p.calls++
 	if p.hook != nil {
 		p.hook()
@@ -226,5 +226,55 @@ func TestOptimizationApproval(t *testing.T) {
 	first, second := <-statuses, <-statuses
 	if !((first == 200 && second == 409) || (first == 409 && second == 200)) {
 		t.Fatalf("concurrent statuses %d %d", first, second)
+	}
+}
+
+func TestTransitPreviewWithOrigin(t *testing.T) {
+	pool := database(t)
+	provider := &testRoutes{}
+	api := &API{Store: &store.Store{Pool: pool}, Auth: testAuth{}, Places: testPlaces{}, Routes: provider}
+	a := client{t, api.Router(), "user-a"}
+	date := time.Now().Add(24 * time.Hour).UTC().Format("2006-01-02")
+	trip := decodeData[domain.Trip](t, a.call("POST", "/api/v1/trips", fmt.Sprintf(`{"name":"Transit","destination":"Tokyo","start_date":%q,"end_date":%q,"timezone":"Asia/Tokyo"}`, date, date), 201))
+	base := "/api/v1/trips/" + trip.ID
+	days := decodeData[[]domain.Day](t, a.call("GET", base+"/days", "", 200))
+	var origin string
+	for i := 0; i < 2; i++ {
+		p := decodeData[domain.SavedPlace](t, a.call("POST", base+"/places", fmt.Sprintf(`{"provider_place_id":"place-%d"}`, i), 201))
+		origin = p.ID
+		a.call("POST", "/api/v1/days/"+days[0].ID+"/activities", fmt.Sprintf(`{"saved_place_id":%q,"duration_minutes":30}`, p.ID), 201)
+	}
+	body := fmt.Sprintf(`{"travel_mode":"TRANSIT","start_minute":540,"end_minute":720,"origin_saved_place_id":%q}`, origin)
+	raw := a.call("POST", base+"/days/"+days[0].ID+"/optimization-preview", body, 200)
+	var preview struct {
+		Proposed   previewSchedule
+		ApprovalID string `json:"approval_id"`
+		Savings    int    `json:"savings_minutes"`
+	}
+	if err := json.Unmarshal(raw, &preview); err != nil {
+		t.Fatal(err)
+	}
+	if preview.ApprovalID == "" || preview.Proposed.TravelMinutes != 3 || preview.Savings != 10 || provider.calls != 4 {
+		t.Fatalf("%s calls %d", raw, provider.calls)
+	}
+	owner, err := api.Store.User(context.Background(), "user-a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if api.limits.buckets["routes:"+owner].count != 25 {
+		t.Fatal("transit rechecks not budgeted")
+	}
+	calls := provider.calls
+	a.call("POST", base+"/days/"+days[0].ID+"/optimization-apply", fmt.Sprintf(`{"approval_id":%q}`, preview.ApprovalID), 200)
+	if provider.calls != calls {
+		t.Fatal("apply called routes")
+	}
+	// Adding an origin reduces the transit activity limit to nine.
+	for i := 2; i < 10; i++ {
+		a.call("POST", "/api/v1/days/"+days[0].ID+"/activities", fmt.Sprintf(`{"saved_place_id":%q,"duration_minutes":10}`, origin), 201)
+	}
+	a.call("POST", base+"/days/"+days[0].ID+"/optimization-preview", body, 400)
+	if provider.calls != calls {
+		t.Fatal("over-limit transit called provider")
 	}
 }

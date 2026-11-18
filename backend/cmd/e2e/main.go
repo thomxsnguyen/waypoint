@@ -60,12 +60,12 @@ func (testPlaces) Details(ctx context.Context, id string) (domain.Place, error) 
 
 type testRoutes struct{}
 
-func (testRoutes) Matrix(_ context.Context, ids []string, _ routing.TravelMode) ([][]int, error) {
+func (testRoutes) Matrix(_ context.Context, ids []string, _ routing.TravelMode, _ ...time.Time) ([][]int, error) {
 	matrix := make([][]int, len(ids))
 	for i := range ids {
 		matrix[i] = make([]int, len(ids))
 		for j := range ids {
-			if i != j {
+			if ids[i] != ids[j] {
 				matrix[i][j] = 10
 				if ids[i] == "sensoji" {
 					matrix[i][j] = 3

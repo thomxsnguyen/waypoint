@@ -7,13 +7,14 @@ test("review, cancel, stale approval, apply and reload", async ({
 }) => {
   const headers = { Authorization: "Bearer e2e-user-a" };
   const base = "http://localhost:18080/api/v1";
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
   const response = await request.post(`${base}/trips`, {
     headers,
     data: {
       name: "Optimization review",
       destination: "Tokyo",
-      start_date: "2026-11-12",
-      end_date: "2026-11-12",
+      start_date: tomorrow,
+      end_date: tomorrow,
       timezone: "Asia/Tokyo",
     },
   });
@@ -119,6 +120,8 @@ test("review, cancel, stale approval, apply and reload", async ({
   await dialog
     .getByLabel("Latest finish for Tokyo National Museum")
     .fill("10:30");
+  await dialog.getByLabel("Starting place").selectOption({ label: "Sensō-ji" });
+  await dialog.getByLabel("Travel mode").selectOption("TRANSIT");
   await dialog
     .getByLabel("Earliest start for Tokyo National Museum")
     .scrollIntoViewIfNeeded();
@@ -129,7 +132,7 @@ test("review, cancel, stale approval, apply and reload", async ({
     await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth),
   ).toBeTruthy();
   await dialog.getByRole("button", { name: "Generate preview" }).click();
-  await expect(dialog.getByText("7 min estimated travel saved")).toBeVisible();
+  await expect(dialog.getByText("10 min estimated travel saved")).toBeVisible();
   await expect(
     dialog.getByRole("region", { name: "Proposed schedule", exact: true }),
   ).toContainText("10:00 – 10:30");

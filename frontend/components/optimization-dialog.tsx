@@ -148,8 +148,14 @@ export function OptimizationDialog({
             <select name="mode" defaultValue="WALK">
               <option value="WALK">Walking</option>
               <option value="DRIVE">Driving (without traffic)</option>
+              <option value="TRANSIT">Public transit</option>
             </select>
           </label>
+          <p className="muted small">
+            Transit supports up to 10 locations including your starting place,
+            within 7 days past or 100 days ahead. It is unavailable on
+            daylight-saving transition days.
+          </p>
           <label>
             Starting place
             <select name="origin" defaultValue="">

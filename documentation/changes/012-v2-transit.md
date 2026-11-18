@@ -23,3 +23,11 @@ https://developers.google.com/maps/documentation/routes/reference/rest/v2/TopLev
 Test transit payload/time limits, per-leg departures after waiting, route costs,
 recheck fallback, no feasible approval, DST rejection, API budget, and browser
 mode selection. No transit booking, fare estimation, or route geometry.
+
+Implemented and verified: provider departure payload/date limits; explicit DST
+transition rejection; per-leg time rechecking after waiting and activities;
+fallback to rechecked original when the sampled proposal no longer improves it;
+origin-aware integration and budget reservation; UI mode selection. Go race tests
+with PostgreSQL, vet, frontend checks/build, and all three browser tests passed.
+The browser optimization case now uses transit plus an origin and visiting window,
+then approves and reloads the saved schedule. No paid provider calls occurred.

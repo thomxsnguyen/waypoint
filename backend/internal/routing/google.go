@@ -14,14 +14,15 @@ import (
 type TravelMode string
 
 const (
-	Walk  TravelMode = "WALK"
-	Drive TravelMode = "DRIVE"
+	Walk    TravelMode = "WALK"
+	Drive   TravelMode = "DRIVE"
+	Transit TravelMode = "TRANSIT"
 )
 
 // MatrixProvider returns directed minutes, with -1 for unavailable legs.
 // Callers must authorize the trip and budget n*n provider elements before use.
 type MatrixProvider interface {
-	Matrix(context.Context, []string, TravelMode) ([][]int, error)
+	Matrix(context.Context, []string, TravelMode, ...time.Time) ([][]int, error)
 }
 
 type Google struct {
@@ -44,12 +45,23 @@ func invalidMatrix() error {
 	return routeError(502, "ROUTES_INVALID_RESPONSE", "Google Routes returned an invalid travel-time matrix.")
 }
 
-func (g *Google) Matrix(ctx context.Context, ids []string, mode TravelMode) ([][]int, error) {
+func (g *Google) Matrix(ctx context.Context, ids []string, mode TravelMode, departure ...time.Time) ([][]int, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if mode != Walk && mode != Drive {
-		return nil, domain.Invalid("Choose walking or driving for this routing version.")
+	if mode != Walk && mode != Drive && mode != Transit {
+		return nil, domain.Invalid("Choose walking, driving, or transit.")
+	}
+	if len(departure) > 1 {
+		return nil, domain.Invalid("Invalid departure time.")
+	}
+	if mode == Transit {
+		if len(departure) != 1 || !TransitDateSupported(departure[0], time.Now()) {
+			return nil, domain.Invalid("Transit requires a departure within 7 days past and 100 days future.")
+		}
+		if len(ids) > 10 {
+			return nil, domain.Invalid("Transit supports at most 10 locations including the starting place.")
+		}
 	}
 	n := len(ids)
 	if n > 21 {
@@ -90,7 +102,11 @@ func (g *Google) Matrix(ctx context.Context, ids []string, mode TravelMode) ([][
 		Destinations []point    `json:"destinations"`
 		Mode         TravelMode `json:"travelMode"`
 		Preference   string     `json:"routingPreference,omitempty"`
+		Departure    string     `json:"departureTime,omitempty"`
 	}{Origins: points, Destinations: points, Mode: mode}
+	if mode == Transit {
+		payload.Departure = departure[0].UTC().Format(time.RFC3339)
+	}
 	if mode == Drive {
 		payload.Preference = "TRAFFIC_UNAWARE"
 	}

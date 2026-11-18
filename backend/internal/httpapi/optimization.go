@@ -76,8 +76,8 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 	if in.Start == nil || in.End == nil || *in.Start < 0 || *in.End > 1440 || *in.Start >= *in.End {
 		return domain.Invalid("Provide increasing day bounds between 0 and 1440 minutes.")
 	}
-	if in.Mode != routing.Walk && in.Mode != routing.Drive {
-		return domain.Invalid("Choose WALK or DRIVE.")
+	if in.Mode != routing.Walk && in.Mode != routing.Drive && in.Mode != routing.Transit {
+		return domain.Invalid("Choose WALK, DRIVE, or TRANSIT.")
 	}
 	if len(day.Activities) > 20 {
 		return domain.Invalid("Optimization supports at most 20 activities per day.")
@@ -149,14 +149,31 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 		}
 		ids = append(ids, originID)
 	}
+	var departure []time.Time
+	if in.Mode == routing.Transit {
+		if len(ids) > 10 {
+			return domain.Invalid("Transit supports at most 10 locations including the starting place.")
+		}
+		value, e := routing.TransitDeparture(day.Date, trip.Timezone, *in.Start)
+		if e != nil {
+			return e
+		}
+		if !routing.TransitDateSupported(value, time.Now()) {
+			return domain.Invalid("Transit is available from 7 days past through 100 days future.")
+		}
+		departure = []time.Time{value}
+	}
 	cost := len(ids) * len(ids)
 	if len(ids) < 2 {
 		cost = 0
 	}
+	if in.Mode == routing.Transit {
+		cost += 8 * len(stops)
+	}
 	if !a.limits.allow("routes:"+user(r), cost, 800) || !a.limits.allow("routes:global", cost, 4000) {
 		return &domain.Error{Status: 429, Code: "ROUTES_RATE_LIMIT", Message: "Travel-time lookup limit reached. Try again in a minute."}
 	}
-	matrix, err := a.Routes.Matrix(r.Context(), ids, in.Mode)
+	matrix, err := a.Routes.Matrix(r.Context(), ids, in.Mode, departure...)
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 		return &domain.Error{Status: 503, Code: "ROUTES_UNAVAILABLE", Message: "Travel-time estimates could not complete. Try again."}
 	}
@@ -182,6 +199,15 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
+	if in.Mode == routing.Transit {
+		proposal, err = routing.RecheckTransit(r.Context(), a.Routes, ids[:len(stops)], originID, stops, proposal, departure[0], *in.Start, *in.End)
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			return &domain.Error{Status: 503, Code: "ROUTES_UNAVAILABLE", Message: "Transit rechecking timed out. Try again."}
+		}
+		if err != nil {
+			return err
+		}
+	}
 	current, err := a.Store.OptimizationSnapshot(r.Context(), user(r), trip.ID, day.ID)
 	if err != nil {
 		return err
@@ -204,6 +230,10 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 		approvalID = id
 		expiresAt = expires.UTC().Format(time.RFC3339)
 	}
+	travelAssumption := "Static travel estimates rounded up to whole minutes."
+	if in.Mode == routing.Transit {
+		travelAssumption = "Transit legs rechecked at scheduled departures; service availability can change. Rounded up to whole minutes."
+	}
 	originAssumption := "No travel to the first stop or return leg is included."
 	if originID != "" {
 		originAssumption = "Travel from the selected starting place is included; no return leg is included."
@@ -215,7 +245,7 @@ func (a *API) optimizationPreview(w http.ResponseWriter, r *http.Request) error 
 		"day_id": day.ID, "timezone": trip.Timezone, "travel_mode": in.Mode,
 		"original": scheduleDTO(proposal.Original), "proposed": scheduleDTO(proposal.Proposed),
 		"changed": proposal.Changed, "savings_minutes": proposal.Savings, "explanation": proposal.Explanation,
-		"assumptions": []string{"Static travel estimates rounded up to whole minutes.", originAssumption, "Only selected start times and supplied visiting windows are enforced; venue opening hours are not verified.", "This heuristic does not guarantee the best route. Preview does not save changes."},
+		"assumptions": []string{travelAssumption, originAssumption, "Only selected start times and supplied visiting windows are enforced; venue opening hours are not verified.", "This heuristic does not guarantee the best route. Preview does not save changes."},
 	})
 	return nil
 }
