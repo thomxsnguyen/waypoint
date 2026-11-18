@@ -120,8 +120,9 @@ Implementation follows [Clerk's Next.js integration](https://clerk.com/docs/next
 ## v2 backend preview (in progress)
 
 The API can preview a single day's optimized order using Google Routes estimates.
-The API also supports explicit approval with stale-plan protection. The frontend
-comparison and approval controls are not implemented yet. See the
+The API also supports explicit approval with stale-plan protection. On the itinerary screen, choose **Optimize day**, set bounds and any fixed starts,
+then generate and review the comparison. **Apply proposed schedule** saves the
+reviewed order and times; **Cancel** keeps your saved plan. See the
 [preview API contract](documentation/api.md) and [progress log](documentation/PROGRESS.md).
 
 For native API development, configure `GOOGLE_ROUTES_SERVER_API_KEY` with a

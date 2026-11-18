@@ -111,4 +111,4 @@ invalidates them; this deployment model supports a single API instance. Capacity
 exhaustion returns 503. The snapshot conservatively includes trip metadata,
 selected-day activities, and saved places. Activity/trip timestamps detect
 edit-and-revert; saved-place notes are compared by current value. No database
-migration is needed. The comparison UI remains pending.
+migration is needed. The itinerary comparison dialog uses this preview/approval flow.

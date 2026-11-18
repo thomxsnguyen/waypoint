@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useTrip } from "@/components/trip-context";
+import { OptimizationDialog } from "@/components/optimization-dialog";
 import { ActivityForm } from "@/components/activity-form";
 import { DayMap } from "@/components/day-map";
 import { ErrorMessage, Modal } from "@/components/ui";
@@ -25,6 +26,7 @@ export default function Itinerary() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [optimizing, setOptimizing] = useState(false);
   const day = days.data?.find((d) => d.id === dayId) || days.data?.[0];
   const placeById = useMemo(
     () => new Map(places.data?.map((p) => [p.id, p])),
@@ -132,6 +134,22 @@ export default function Itinerary() {
                   ＋ Add activity
                 </button>
               </div>
+              <button
+                className="small secondary"
+                disabled={
+                  busy ||
+                  day.activities.length === 0 ||
+                  day.activities.length > 20
+                }
+                onClick={() => setOptimizing(true)}
+              >
+                Optimize day
+              </button>
+              {day.activities.length > 20 && (
+                <p className="muted small">
+                  Optimization supports up to 20 activities per day.
+                </p>
+              )}
               <p className="success save-status" role="status">
                 {busy ? "Saving…" : notice}
               </p>
@@ -258,6 +276,21 @@ export default function Itinerary() {
             />
           </div>
         )
+      )}
+      {optimizing && day && (
+        <OptimizationDialog
+          tripId={trip.id}
+          timezone={trip.timezone}
+          day={day}
+          places={places.data || []}
+          onClose={() => setOptimizing(false)}
+          onSaved={() => {
+            setOptimizing(false);
+            setSelected(null);
+            days.reload();
+            setNotice("Approved schedule saved.");
+          }}
+        />
       )}
       {editing && day && (
         <Modal

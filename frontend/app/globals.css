@@ -1029,3 +1029,11 @@ footer a {
     transition: none !important;
   }
 }
+
+.optimization-inputs { border: 0; padding: 0; display: grid; gap: 1rem; }
+.optimization-inputs fieldset { border: 1px solid var(--border, #ddd); border-radius: 8px; padding: 1rem; }
+.optimization-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.optimization-columns li { margin-bottom: .75rem; overflow-wrap: anywhere; }
+.optimization-check { display: flex; align-items: center; gap: .5rem; margin: .5rem 0; }
+.optimization-check input { width: auto; }
+@media (max-width: 600px) { .optimization-columns { grid-template-columns: 1fr; } }

@@ -22,3 +22,23 @@ production build, Go race tests, and full browser suite. No new provider modes,
 origin/window model, or unrelated design changes.
 
 Status: planned before implementation.
+
+## Verification result
+
+Implemented the day-scoped dialog and itinerary entry point using existing modal
+and form conventions. Original/proposed times are explicitly labeled estimates;
+Apply states that order and start times will be saved. Editing inputs invalidates
+the displayed preview. Stale apply errors require regeneration.
+
+Typecheck, lint, production build, full Go race suite with PostgreSQL, vet, and
+compilation of the test-only API passed. All three browser scenarios passed with
+the real API/database and external-provider doubles. The optimization scenario
+also passed after adding input-change invalidation and lower-dialog screenshots.
+It verifies unchanged data through preview/cancel, stale approval rejection,
+approved order/times after reload, preservation of another-tab notes, and mobile
+horizontal overflow. Mobile form and lower comparison/approval screenshots were
+visually reviewed. No paid provider calls occurred.
+
+Remaining v2 scope: origin inputs, visiting windows, transit semantics, controlled
+benchmarking, and live-provider staging verification. This is not full v2 release
+completion.
