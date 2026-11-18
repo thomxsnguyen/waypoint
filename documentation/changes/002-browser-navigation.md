@@ -14,4 +14,6 @@ On the return navigation, wait for discovery before removing the saved place.
 Do not change application behavior. The existing outage scenario must complete
 against the real test API/database without sleeps or forced clicks.
 
-Status: planned before implementation.
+Status: implemented. The test waits for each destination heading and scopes
+activity removal to its card. The complete provider-outage browser flow passed
+against the isolated real API and PostgreSQL database.

@@ -66,7 +66,9 @@ test("provider outages preserve editable activities and date changes refresh day
   await page.getByRole("link", { name: "Discover & save" }).click();
   await expect(page.getByText("Keep this reminder")).toBeVisible();
   await page.getByRole("button", { name: "Edit notes" }).click();
-  await page.getByRole("textbox", { name: "Notes", exact: true }).fill("Updated place note");
+  await page
+    .getByRole("textbox", { name: "Notes", exact: true })
+    .fill("Updated place note");
   await page.getByRole("button", { name: "Save notes" }).click();
   await expect(page.getByText("Updated place note")).toBeVisible();
   await page.getByLabel("Search places").fill("outage");
@@ -82,11 +84,20 @@ test("provider outages preserve editable activities and date changes refresh day
     page.getByRole("heading", { name: "Tokyo National Museum", exact: true }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Itinerary", exact: true }).click();
-  await page.getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "The day-by-day" }),
+  ).toBeVisible();
+  await page
+    .locator(".activity-card")
+    .getByRole("button", { name: "Remove", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "A fresh day, all yours." }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Discover & save" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Find your favorite places" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Remove", exact: true }).click();
   await expect(
     page.getByText("Your collection is waiting.", { exact: false }),
