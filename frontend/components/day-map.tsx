@@ -8,8 +8,10 @@ export type MapActivity = {
   position: number;
 };
 let mapsPromise: Promise<void> | undefined;
+let mapsAuthenticationFailed = false;
 function loadMaps(key: string) {
   if (
+    !mapsAuthenticationFailed &&
     typeof window.google !== "undefined" &&
     typeof window.google.maps !== "undefined"
   )
@@ -23,13 +25,20 @@ function loadMaps(key: string) {
         waypointMapsReady: () => void;
         gm_authFailure: () => void;
       };
-      target.waypointMapsReady = () => resolve();
-      target.gm_authFailure = () =>
+      target.waypointMapsReady = () => {
+        mapsAuthenticationFailed = false;
+        resolve();
+      };
+      target.gm_authFailure = () => {
+        mapsAuthenticationFailed = true;
+        mapsPromise = undefined;
+        script.remove();
         reject(
           new Error(
             "Google Maps could not authenticate. Check the browser key restrictions.",
           ),
         );
+      };
       script.onerror = () => {
         mapsPromise = undefined;
         script.remove();

@@ -9,6 +9,17 @@ test("persistent multi-day itinerary, marker selection, ownership, and deletion"
   page,
   request,
 }) => {
+  let mapRequests = 0;
+  await page.route("https://maps.googleapis.com/maps/api/js?**", (route) => {
+    mapRequests += 1;
+    return route.fulfill({
+      contentType: "application/javascript",
+      body:
+        mapRequests === 1
+          ? "window.google={maps:{}}; window.gm_authFailure();"
+          : mapsScript,
+    });
+  });
   await page.goto("/trips");
   await page.getByRole("button", { name: "Sign in as traveler A" }).click();
   await page.getByRole("button", { name: "New trip" }).click();
@@ -54,6 +65,9 @@ test("persistent multi-day itinerary, marker selection, ownership, and deletion"
     page.getByRole("heading", { name: "Tokyo National Museum", exact: true }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Itinerary", exact: true }).click();
+  await expect(page.locator(".map-message[role=alert]")).toContainText(
+    "Google Maps could not authenticate",
+  );
   await page.getByRole("button", { name: /Day 2/ }).click();
   const add = async (place: string, time: string, duration: string) => {
     await page.getByRole("button", { name: "Add activity" }).click();
@@ -70,6 +84,9 @@ test("persistent multi-day itinerary, marker selection, ownership, and deletion"
   await expect(page.locator(".activity-card")).toHaveCount(1);
   await add("Sensō-ji", "12:00", "60");
   await expect(page.locator(".activity-card")).toHaveCount(2);
+  await page.getByRole("button", { name: "Retry map" }).click();
+  await expect(page.getByRole("button", { name: /^Map:/ })).toHaveCount(2);
+  expect(mapRequests).toBe(2);
   await page.getByRole("button", { name: "Move activity 2 up" }).click();
   await expect(page.locator(".activity-card").first()).toContainText(
     "Sensō-ji",

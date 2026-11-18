@@ -25,4 +25,10 @@ Add a browser regression with Google Maps responses stubbed, using the existing
 real API and isolated PostgreSQL test harness. Run typecheck, lint, Go tests,
 and the browser suite. Record actual results in the progress log.
 
-Status: planned before implementation.
+Status: implemented. Authentication failure invalidates the cached loader and
+removes its script. Retry bypasses the namespace left by the failed script.
+
+The regression was run against the original loader and failed at the expected
+assertion: zero markers after retry instead of two. With the fix, both browser
+scenarios passed. Typecheck and lint also passed. The journey confirms activities
+can be added during map failure and card/marker selection works after recovery.
